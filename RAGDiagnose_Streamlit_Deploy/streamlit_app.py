@@ -33,7 +33,6 @@ st.markdown("""
 
 with st.sidebar:
     st.header("⚙️ Configuration")
-    # Yahan aapki API key default set kar di gayi hai
     api_key = st.text_input(
         "Gemini API Key",
         value="AQ.Ab8RN6JMe9HnE0kI7PHCZklGyOPm_Uj3eCwTNE5vrHn19bo9iw",
@@ -134,3 +133,72 @@ def diagnose(question: str, retrieved: List[Dict[str, Any]], answer: str) -> Dic
         }
     top_score = retrieved[0]["score"]
     if top_score < 0.12:
+        status, risk = "Weak retrieval", "High"
+        cause = "Retrieved context has low lexical overlap."
+        recommendation = "Rephrase the question."
+    elif top_score < 0.28:
+        status, risk = "Moderate retrieval", "Medium"
+        cause = "Some query terms match."
+        recommendation = "Increase Top-K."
+    else:
+        status, risk = "Relevant context found", "Low–Medium"
+        cause = "Context shares several terms."
+        recommendation = "Verify citations."
+    if len(answer.strip()) < 25:
+        risk = "High"
+        cause += " The generated answer is unusually short."
+    return {
+        "retrieval_status": status,
+        "grounding_risk": risk,
+        "root_cause": cause,
+        "recommendation": recommendation,
+    }
+
+def read_pdf(uploaded_file) -> List[Dict[str, Any]]:
+    reader = PdfReader(uploaded_file)
+    all_chunks = []
+    for idx, page in enumerate(reader.pages, start=1):
+        try:
+            text = page.extract_text() or ""
+        except Exception:
+            text = ""
+        all_chunks.extend(split_chunks(text, chunk_size, overlap, uploaded_file.name, idx))
+    return all_chunks
+
+tabs = st.tabs(["📊 Overview", "📚 Knowledge Base", "💬 RAG Chat", "🧪 Evaluation Lab", "🩺 Root Cause Analysis"])
+
+with tabs[0]:
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Documents", len(set(c["source"] for c in st.session_state.chunks)))
+    c2.metric("Indexed chunks", len(st.session_state.chunks))
+    c3.metric("Questions asked", len(st.session_state.history))
+    if st.session_state.last_eval:
+        c4.metric("Latest retrieval score", f"{st.session_state.last_eval['score']:.2f}")
+    else:
+        c4.metric("Latest retrieval score", "—")
+    st.subheader("System status")
+    status_col1, status_col2 = st.columns(2)
+    status_col1.success("Streamlit app is running")
+    status_col2.info("Gemini API key: configured" if api_key else "Gemini API key: not configured")
+
+with tabs[1]:
+    st.subheader("Upload PDF knowledge")
+    files = st.file_uploader("Choose one or more text-based PDF files", type=["pdf"], accept_multiple_files=True)
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        if st.button("📥 Process uploaded PDFs", type="primary", use_container_width=True):
+            if not files:
+                st.warning("Please select at least one PDF.")
+            else:
+                combined = []
+                for f in files:
+                    combined.extend(read_pdf(f))
+                st.session_state.chunks = combined
+                st.session_state.documents = [f.name for f in files]
+                st.session_state.history = []
+                st.session_state.last_eval = None
+                st.success(f"Processed {len(files)} file(s) into {len(combined)} text chunks.")
+    with col_b:
+        if st.button("🗑️ Clear knowledge base", use_container_width=True):
+            st.session_state.chunks = []
+            st.session_state.
