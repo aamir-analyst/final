@@ -34,19 +34,23 @@ st.markdown(
         .main-title {
             font-size: 34px;
             font-weight: 800;
-            color: #1f2937;
+            color: #111827 !important;
             margin-bottom: 4px;
         }
 
         .sub-title {
-            color: #667085;
+            color: #4b5563 !important;
             font-size: 15px;
             margin-bottom: 25px;
         }
 
+        h1, h2, h3, h4, h5, h6 {
+            color: #111827 !important;
+        }
+
         .metric-card {
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
+            background-color: #f8fafc !important;
+            border: 1px solid #d1d5db;
             border-radius: 12px;
             padding: 18px;
             text-align: center;
@@ -55,22 +59,80 @@ st.markdown(
         .metric-value {
             font-size: 28px;
             font-weight: 800;
-            color: #4f46e5;
+            color: #4f46e5 !important;
         }
 
         .metric-label {
-            color: #667085;
+            color: #374151 !important;
             font-size: 13px;
             margin-top: 3px;
         }
 
         .chunk-box {
-            background: #f8fafc;
+            background-color: #f8fafc !important;
+            color: #111827 !important;
             border-left: 4px solid #6366f1;
+            border-top: 1px solid #d1d5db;
+            border-right: 1px solid #d1d5db;
+            border-bottom: 1px solid #d1d5db;
             border-radius: 8px;
-            padding: 12px;
+            padding: 14px;
             margin-bottom: 10px;
             font-size: 14px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .chunk-box,
+        .chunk-box *,
+        .chunk-box b {
+            color: #111827 !important;
+        }
+
+        input,
+        textarea {
+            color: #111827 !important;
+            background-color: #ffffff !important;
+        }
+
+        [data-baseweb="select"] * {
+            color: #111827 !important;
+        }
+
+        [data-testid="stDataFrame"] {
+            color: #111827 !important;
+        }
+
+        .stButton button {
+            color: #111827 !important;
+            background-color: #f3f4f6 !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        .stButton button:hover {
+            color: #4f46e5 !important;
+            border-color: #4f46e5 !important;
+        }
+
+        .stDownloadButton button {
+            color: #ffffff !important;
+            background-color: #4f46e5 !important;
+            border: none !important;
+        }
+
+        section[data-testid="stSidebar"] {
+            color: #111827 !important;
+        }
+
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] span {
+            color: #111827 !important;
+        }
+
+        [data-testid="stAlert"] p {
+            color: inherit !important;
         }
     </style>
     """,
@@ -83,9 +145,6 @@ st.markdown(
 # ============================================================
 
 def extract_text_from_file(uploaded_file) -> str:
-    """
-    Extract text from TXT, MD, PDF, and DOCX files.
-    """
     file_name = uploaded_file.name.lower()
     file_data = uploaded_file.getvalue()
 
@@ -112,9 +171,10 @@ def extract_text_from_file(uploaded_file) -> str:
             from docx import Document
 
             document = Document(io.BytesIO(file_data))
-            paragraphs = [paragraph.text for paragraph in document.paragraphs]
-
-            return "\n".join(paragraphs)
+            return "\n".join(
+                paragraph.text
+                for paragraph in document.paragraphs
+            )
 
         except Exception as exc:
             raise ValueError(f"Unable to read the DOCX file: {exc}")
@@ -133,7 +193,6 @@ def clean_text(text: str) -> str:
     text = re.sub(r"\r\n?", "\n", text)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
-
     return text.strip()
 
 
@@ -142,9 +201,6 @@ def split_into_chunks(
     chunk_size: int = 700,
     overlap: int = 100,
 ) -> List[str]:
-    """
-    Split text into overlapping character-based chunks.
-    """
     text = clean_text(text)
 
     if not text:
@@ -172,7 +228,7 @@ def split_into_chunks(
 
 
 # ============================================================
-# TF-IDF RETRIEVER
+# RETRIEVER
 # ============================================================
 
 class TfidfRetriever:
@@ -188,7 +244,6 @@ class TfidfRetriever:
                 ngram_range=(1, 2),
                 max_features=10000,
             )
-
             self.matrix = self.vectorizer.fit_transform(chunks)
 
     def search(self, query: str, top_k: int = 3) -> List[Dict]:
@@ -203,28 +258,23 @@ class TfidfRetriever:
 
         ranked_indices = np.argsort(scores)[::-1][:top_k]
 
-        results = []
-
-        for rank, index in enumerate(ranked_indices, start=1):
-            results.append(
-                {
-                    "rank": rank,
-                    "chunk_id": int(index),
-                    "score": float(scores[index]),
-                    "text": self.chunks[index],
-                }
-            )
-
-        return results
+        return [
+            {
+                "rank": rank,
+                "chunk_id": int(index),
+                "score": float(scores[index]),
+                "text": self.chunks[index],
+            }
+            for rank, index in enumerate(ranked_indices, start=1)
+        ]
 
 
 # ============================================================
-# EXTRACTIVE ANSWER GENERATOR
+# ANSWER GENERATION
 # ============================================================
 
 def split_sentences(text: str) -> List[str]:
     sentences = re.split(r"(?<=[.!?])\s+", text.strip())
-
     return [
         sentence.strip()
         for sentence in sentences
@@ -233,10 +283,7 @@ def split_sentences(text: str) -> List[str]:
 
 
 def normalize_tokens(text: str) -> List[str]:
-    return re.findall(
-        r"\b[a-zA-Z0-9]+\b",
-        text.lower(),
-    )
+    return re.findall(r"\b[a-zA-Z0-9]+\b", text.lower())
 
 
 def sentence_relevance(sentence: str, query: str) -> float:
@@ -258,53 +305,47 @@ def generate_answer(
     retrieved_chunks: List[Dict],
     max_sentences: int = 3,
 ) -> str:
-    """
-    Generate an extractive answer only from retrieved context.
-    """
     if not retrieved_chunks:
         return (
             "I could not find relevant information in the uploaded documents."
         )
 
-    candidate_sentences = []
+    candidates = []
 
     for chunk in retrieved_chunks:
         for sentence in split_sentences(chunk["text"]):
-            candidate_sentences.append(
+            candidates.append(
                 {
                     "text": sentence,
                     "score": sentence_relevance(sentence, query),
                 }
             )
 
-    candidate_sentences.sort(
+    candidates.sort(
         key=lambda item: item["score"],
         reverse=True,
     )
 
-    selected_sentences = []
-    seen_sentences = set()
+    selected = []
+    seen = set()
 
-    for item in candidate_sentences:
+    for item in candidates:
         sentence = item["text"].strip()
-        sentence_key = sentence.lower()
+        key = sentence.lower()
 
-        if sentence_key in seen_sentences:
+        if key in seen or len(sentence) < 20:
             continue
 
-        if len(sentence) < 20:
-            continue
+        selected.append(sentence)
+        seen.add(key)
 
-        selected_sentences.append(sentence)
-        seen_sentences.add(sentence_key)
-
-        if len(selected_sentences) >= max_sentences:
+        if len(selected) >= max_sentences:
             break
 
-    if not selected_sentences:
+    if not selected:
         return retrieved_chunks[0]["text"][:700]
 
-    return " ".join(selected_sentences)
+    return " ".join(selected)
 
 
 # ============================================================
@@ -319,9 +360,6 @@ def context_relevance(
     query: str,
     retrieved_chunks: List[Dict],
 ) -> float:
-    """
-    Measure query-token overlap with retrieved chunks.
-    """
     if not retrieved_chunks:
         return 0.0
 
@@ -349,16 +387,13 @@ def faithfulness_score(
     answer: str,
     context: str,
 ) -> float:
-    """
-    Estimate whether answer sentences are supported by retrieved context.
-    """
     answer_sentences = split_sentences(answer)
     context_tokens = lexical_tokens(context)
 
     if not answer_sentences:
         return 0.0
 
-    sentence_scores = []
+    scores = []
 
     for sentence in answer_sentences:
         sentence_tokens = lexical_tokens(sentence)
@@ -367,23 +402,18 @@ def faithfulness_score(
             continue
 
         overlap = len(sentence_tokens.intersection(context_tokens))
-        sentence_scores.append(overlap / len(sentence_tokens))
+        scores.append(overlap / len(sentence_tokens))
 
-    if not sentence_scores:
+    if not scores:
         return 0.0
 
-    return float(
-        min(1.0, sum(sentence_scores) / len(sentence_scores))
-    )
+    return float(min(1.0, sum(scores) / len(scores)))
 
 
 def answer_accuracy(
     answer: str,
     expected_answer: str,
 ) -> float:
-    """
-    Calculate token-level F1 similarity between generated and expected answers.
-    """
     answer_tokens = lexical_tokens(answer)
     expected_tokens = lexical_tokens(expected_answer)
 
@@ -442,7 +472,7 @@ def get_root_cause(
     if has_ground_truth and accuracy < accuracy_threshold:
         return (
             "Generator Accuracy Failure",
-            "The retrieved context is relevant and the answer is supported, but it does not sufficiently match the expected answer.",
+            "The retrieved context is relevant and supported, but the generated answer does not sufficiently match the expected answer.",
         )
 
     return (
@@ -459,15 +489,10 @@ def generate_synthetic_tests(
     chunks: List[str],
     max_questions: int,
 ) -> List[Dict]:
-    """
-    Create deterministic test questions from document sentences.
-    """
     tests = []
 
     for chunk_id, chunk in enumerate(chunks):
-        sentences = split_sentences(chunk)
-
-        for sentence in sentences:
+        for sentence in split_sentences(chunk):
             words = normalize_tokens(sentence)
 
             if len(words) < 8:
@@ -507,8 +532,34 @@ def display_metric(label: str, value: float):
     )
 
 
+def render_chunk(chunk: Dict, show_chunk_id: bool = True):
+    chunk_id_html = ""
+
+    if show_chunk_id:
+        chunk_id_html = (
+            f"<b>Chunk ID:</b> {chunk['chunk_id']}"
+            "&nbsp;&nbsp;|&nbsp;&nbsp;"
+        )
+
+    safe_text = html.escape(chunk["text"])
+
+    st.markdown(
+        f"""
+        <div class="chunk-box">
+            <b>Rank:</b> {chunk['rank']}
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            {chunk_id_html}
+            <b>Similarity:</b> {chunk['score']:.3f}
+            <br><br>
+            {safe_text}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 # ============================================================
-# APPLICATION HEADER
+# HEADER
 # ============================================================
 
 st.markdown(
@@ -528,7 +579,7 @@ st.info(
 
 
 # ============================================================
-# SIDEBAR CONFIGURATION
+# SIDEBAR
 # ============================================================
 
 with st.sidebar:
@@ -572,7 +623,6 @@ with st.sidebar:
     )
 
     st.divider()
-
     st.markdown("### Evaluation Thresholds")
 
     retrieval_threshold = st.slider(
@@ -636,8 +686,9 @@ file_summary = []
 
 for uploaded_file in uploaded_files:
     try:
-        extracted_text = extract_text_from_file(uploaded_file)
-        extracted_text = clean_text(extracted_text)
+        extracted_text = clean_text(
+            extract_text_from_file(uploaded_file)
+        )
 
         if extracted_text:
             all_text.append(extracted_text)
@@ -689,27 +740,18 @@ retriever = TfidfRetriever(chunks)
 
 st.markdown("## 📄 Document Overview")
 
-column_1, column_2, column_3, column_4 = st.columns(4)
+col1, col2, col3, col4 = st.columns(4)
 
-with column_1:
-    display_metric(
-        "Documents",
-        min(len(uploaded_files) / max(len(uploaded_files), 1), 1.0),
-    )
+with col1:
+    display_metric("Documents", 1.0)
 
-with column_2:
-    display_metric(
-        "Chunks",
-        min(len(chunks) / max(len(chunks), 1), 1.0),
-    )
+with col2:
+    display_metric("Chunks", 1.0 if chunks else 0.0)
 
-with column_3:
-    display_metric(
-        "Text Available",
-        1.0 if combined_text else 0.0,
-    )
+with col3:
+    display_metric("Text Available", 1.0 if combined_text else 0.0)
 
-with column_4:
+with col4:
     display_metric(
         "Retriever Ready",
         1.0 if retriever.matrix is not None else 0.0,
@@ -738,7 +780,7 @@ expected_answer = st.text_area(
     "Expected Answer / Ground Truth",
     placeholder=(
         "Optional: enter the expected answer. "
-        "This will be used to calculate the answer accuracy score."
+        "This will be used to calculate answer accuracy."
     ),
     height=100,
 )
@@ -805,7 +847,6 @@ if run_query:
         "query": query,
         "expected_answer": expected_answer,
         "retrieved_chunks": retrieved_chunks,
-        "context": context,
         "generated_answer": generated_answer,
         "retrieval_score": retrieval_score,
         "faithfulness": faithfulness,
@@ -816,7 +857,7 @@ if run_query:
 
 
 # ============================================================
-# DISPLAY MANUAL EVALUATION RESULT
+# DISPLAY RESULT
 # ============================================================
 
 if "last_result" in st.session_state:
@@ -824,7 +865,7 @@ if "last_result" in st.session_state:
 
     st.markdown("### Evaluation Scores")
 
-    metric_1, metric_2, metric_3, metric_4 = st.columns(4)
+    score1, score2, score3, score4 = st.columns(4)
 
     overall_passed = (
         result["retrieval_score"] >= retrieval_threshold
@@ -835,25 +876,25 @@ if "last_result" in st.session_state:
         )
     )
 
-    with metric_1:
+    with score1:
         display_metric(
             "Context Relevance",
             result["retrieval_score"],
         )
 
-    with metric_2:
+    with score2:
         display_metric(
             "Faithfulness",
             result["faithfulness"],
         )
 
-    with metric_3:
+    with score3:
         display_metric(
             "Answer Accuracy",
             result["accuracy"],
         )
 
-    with metric_4:
+    with score4:
         display_metric(
             "Overall Result",
             1.0 if overall_passed else 0.0,
@@ -879,20 +920,7 @@ if "last_result" in st.session_state:
         st.error("No relevant chunks were retrieved.")
     else:
         for item in result["retrieved_chunks"]:
-            st.markdown(
-                f"""
-                <div class="chunk-box">
-                    <b>Rank:</b> {item['rank']}
-                    &nbsp;&nbsp;|&nbsp;&nbsp;
-                    <b>Chunk ID:</b> {item['chunk_id']}
-                    &nbsp;&nbsp;|&nbsp;&nbsp;
-                    <b>Similarity:</b> {item['score']:.3f}
-                    <br><br>
-                    {html.escape(item['text'])}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            render_chunk(item, show_chunk_id=True)
 
     report = pd.DataFrame(
         [
@@ -947,22 +975,11 @@ if inspection_query.strip():
         st.warning("No chunks were retrieved.")
     else:
         for item in inspection_results:
-            st.markdown(
-                f"""
-                <div class="chunk-box">
-                    <b>Rank:</b> {item['rank']}
-                    &nbsp;&nbsp;|&nbsp;&nbsp;
-                    <b>Similarity:</b> {item['score']:.3f}
-                    <br><br>
-                    {html.escape(item['text'])}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            render_chunk(item, show_chunk_id=False)
 
 
 # ============================================================
-# AUTOMATED SYNTHETIC TEST EVALUATION
+# SYNTHETIC TEST EVALUATION
 # ============================================================
 
 st.markdown("## 🧪 Automated Synthetic Test Evaluation")
@@ -993,7 +1010,7 @@ if run_batch:
     if not synthetic_tests:
         st.warning("Synthetic test cases could not be generated.")
     else:
-        batch_rows = []
+        rows = []
         progress_bar = st.progress(0.0)
 
         for index, test_case in enumerate(synthetic_tests):
@@ -1041,7 +1058,7 @@ if run_batch:
                 accuracy_threshold=accuracy_threshold,
             )
 
-            batch_rows.append(
+            rows.append(
                 {
                     "test_id": index + 1,
                     "question": test_query,
@@ -1068,11 +1085,11 @@ if run_batch:
                 (index + 1) / len(synthetic_tests)
             )
 
-        st.session_state["batch_df"] = pd.DataFrame(batch_rows)
+        st.session_state["batch_df"] = pd.DataFrame(rows)
 
 
 # ============================================================
-# DISPLAY BATCH RESULTS
+# BATCH RESULT
 # ============================================================
 
 if "batch_df" in st.session_state:
@@ -1082,21 +1099,21 @@ if "batch_df" in st.session_state:
     average_faithfulness = batch_df["faithfulness"].mean()
     average_accuracy = batch_df["accuracy"].mean()
 
-    batch_metric_1, batch_metric_2, batch_metric_3 = st.columns(3)
+    batch1, batch2, batch3 = st.columns(3)
 
-    with batch_metric_1:
+    with batch1:
         display_metric(
             "Average Retrieval",
             average_retrieval,
         )
 
-    with batch_metric_2:
+    with batch2:
         display_metric(
             "Average Faithfulness",
             average_faithfulness,
         )
 
-    with batch_metric_3:
+    with batch3:
         display_metric(
             "Average Accuracy",
             average_accuracy,
