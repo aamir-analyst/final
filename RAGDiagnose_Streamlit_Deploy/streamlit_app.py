@@ -1,13 +1,12 @@
 import io
 import re
-import math
 import html
-from typing import List, Dict, Tuple
+import math
+from typing import List, Dict
 
 import numpy as np
 import pandas as pd
 import streamlit as st
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -25,115 +24,288 @@ st.set_page_config(
 
 
 # ============================================================
-# CUSTOM CSS
+# PROFESSIONAL FRONTEND STYLE
 # ============================================================
 
 st.markdown(
     """
     <style>
-        .main-title {
-            font-size: 34px;
-            font-weight: 800;
-            color: #111827 !important;
-            margin-bottom: 4px;
-        }
+    /* ------------------------------
+       Global application colors
+    ------------------------------ */
 
-        .sub-title {
-            color: #4b5563 !important;
-            font-size: 15px;
-            margin-bottom: 25px;
-        }
+    :root {
+        --primary: #6366f1;
+        --primary-dark: #4338ca;
+        --text-main: #111827;
+        --text-soft: #475467;
+        --text-muted: #667085;
+        --card-bg: #ffffff;
+        --page-bg: #f5f7fb;
+        --border: #e4e7ec;
+        --success: #027a48;
+        --warning: #b54708;
+    }
 
-        h1, h2, h3, h4, h5, h6 {
-            color: #111827 !important;
-        }
+    /* Main background */
+    .stApp {
+        background:
+            linear-gradient(
+                135deg,
+                #f8faff 0%,
+                #f4f6fb 45%,
+                #eef2ff 100%
+            );
+    }
 
-        .metric-card {
-            background-color: #f8fafc !important;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            padding: 18px;
-            text-align: center;
-        }
+    /* Main content width */
+    .block-container {
+        max-width: 1220px;
+        padding-top: 2rem;
+        padding-bottom: 4rem;
+    }
 
-        .metric-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: #4f46e5 !important;
-        }
+    /* Force readable text */
+    .stApp,
+    .stApp p,
+    .stApp li,
+    .stApp label,
+    .stApp span,
+    .stApp div {
+        color: var(--text-main);
+    }
 
-        .metric-label {
-            color: #374151 !important;
-            font-size: 13px;
-            margin-top: 3px;
-        }
+    /* Main headings */
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--text-main) !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em;
+    }
 
-        .chunk-box {
-            background-color: #f8fafc !important;
-            color: #111827 !important;
-            border-left: 4px solid #6366f1;
-            border-top: 1px solid #d1d5db;
-            border-right: 1px solid #d1d5db;
-            border-bottom: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 14px;
-            margin-bottom: 10px;
-            font-size: 14px;
-            line-height: 1.6;
-            word-wrap: break-word;
-            overflow-wrap: anywhere;
-        }
+    h1 {
+        font-size: 2.25rem !important;
+    }
 
-        .chunk-box,
-        .chunk-box *,
-        .chunk-box b {
-            color: #111827 !important;
-        }
+    h2 {
+        font-size: 1.65rem !important;
+        margin-top: 2rem !important;
+    }
 
-        input,
-        textarea {
-            color: #111827 !important;
-            background-color: #ffffff !important;
-        }
+    h3 {
+        font-size: 1.25rem !important;
+    }
 
-        [data-baseweb="select"] * {
-            color: #111827 !important;
-        }
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background:
+            linear-gradient(
+                180deg,
+                #ffffff 0%,
+                #f8f9fc 100%
+            );
+        border-right: 1px solid #e4e7ec;
+    }
 
-        [data-testid="stDataFrame"] {
-            color: #111827 !important;
-        }
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] span {
+        color: #111827 !important;
+    }
 
-        .stButton button {
-            color: #111827 !important;
-            background-color: #f3f4f6 !important;
-            border: 1px solid #d1d5db !important;
-        }
+    /* Hero section */
+    .hero {
+        background:
+            linear-gradient(
+                135deg,
+                #312e81 0%,
+                #4f46e5 50%,
+                #7c3aed 100%
+            );
+        border-radius: 22px;
+        padding: 30px 34px;
+        margin-bottom: 22px;
+        box-shadow: 0 18px 45px rgba(79, 70, 229, 0.22);
+    }
 
-        .stButton button:hover {
-            color: #4f46e5 !important;
-            border-color: #4f46e5 !important;
-        }
+    .hero-title {
+        color: #ffffff !important;
+        font-size: 2.35rem;
+        font-weight: 850;
+        margin: 0;
+    }
 
-        .stDownloadButton button {
-            color: #ffffff !important;
-            background-color: #4f46e5 !important;
-            border: none !important;
-        }
+    .hero-subtitle {
+        color: #e0e7ff !important;
+        font-size: 1rem;
+        margin-top: 8px;
+    }
 
-        section[data-testid="stSidebar"] {
-            color: #111827 !important;
-        }
+    /* Section heading */
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        color: #111827 !important;
+        font-size: 1.55rem;
+        font-weight: 800;
+        margin: 30px 0 14px 0;
+    }
 
-        section[data-testid="stSidebar"] label,
-        section[data-testid="stSidebar"] p,
-        section[data-testid="stSidebar"] span {
-            color: #111827 !important;
-        }
+    .section-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e0e7ff;
+        border-radius: 12px;
+        font-size: 21px;
+    }
 
-        [data-testid="stAlert"] p {
-            color: inherit !important;
-        }
+    /* Information card */
+    .info-card {
+        background: #eef4ff;
+        border: 1px solid #bfd3ff;
+        border-left: 5px solid #4f46e5;
+        color: #1e3a8a !important;
+        padding: 15px 18px;
+        border-radius: 12px;
+        line-height: 1.55;
+        margin: 12px 0 22px 0;
+    }
+
+    /* Metric cards */
+    .metric-card {
+        background: #ffffff !important;
+        border: 1px solid #e4e7ec;
+        border-radius: 17px;
+        padding: 21px 12px;
+        text-align: center;
+        min-height: 125px;
+        box-shadow: 0 7px 20px rgba(16, 24, 40, 0.06);
+    }
+
+    .metric-value {
+        color: #4f46e5 !important;
+        font-size: 2rem;
+        font-weight: 850;
+        line-height: 1.1;
+    }
+
+    .metric-label {
+        color: #475467 !important;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 9px;
+    }
+
+    /* Retrieved text cards */
+    .chunk-card {
+        background: #ffffff !important;
+        border: 1px solid #d9def0;
+        border-left: 5px solid #6366f1;
+        color: #111827 !important;
+        border-radius: 13px;
+        padding: 17px;
+        margin: 12px 0;
+        box-shadow: 0 5px 14px rgba(16, 24, 40, 0.05);
+        line-height: 1.65;
+    }
+
+    .chunk-card,
+    .chunk-card *,
+    .chunk-card b {
+        color: #111827 !important;
+    }
+
+    .chunk-meta {
+        color: #4f46e5 !important;
+        font-weight: 750;
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+    }
+
+    /* Result card */
+    .answer-card {
+        background: #ffffff !important;
+        border: 1px solid #c7d2fe;
+        border-radius: 15px;
+        padding: 20px;
+        color: #111827 !important;
+        line-height: 1.7;
+        box-shadow: 0 7px 20px rgba(16, 24, 40, 0.05);
+    }
+
+    .answer-card,
+    .answer-card * {
+        color: #111827 !important;
+    }
+
+    /* Input fields */
+    input,
+    textarea {
+        color: #111827 !important;
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 9px !important;
+    }
+
+    input:focus,
+    textarea:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 2px #c7d2fe !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        border-radius: 9px !important;
+        font-weight: 700 !important;
+        min-height: 42px;
+    }
+
+    .stButton > button[kind="primary"] {
+        background: #4f46e5 !important;
+        color: #ffffff !important;
+        border: 0 !important;
+    }
+
+    .stButton > button[kind="primary"]:hover {
+        background: #3730a3 !important;
+    }
+
+    .stDownloadButton > button {
+        background: #4f46e5 !important;
+        color: #ffffff !important;
+        border: 0 !important;
+        border-radius: 9px !important;
+        font-weight: 700 !important;
+    }
+
+    /* Expanders */
+    [data-testid="stExpander"] {
+        background: #ffffff;
+        border: 1px solid #e4e7ec;
+        border-radius: 12px;
+    }
+
+    [data-testid="stExpander"] summary p {
+        color: #111827 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Alerts */
+    [data-testid="stAlert"] p {
+        color: inherit !important;
+    }
+
+    /* Divider */
+    hr {
+        border-color: #e4e7ec !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -141,41 +313,37 @@ st.markdown(
 
 
 # ============================================================
-# FILE TEXT EXTRACTION
+# TEXT EXTRACTION
 # ============================================================
 
-def extract_text_from_file(uploaded_file) -> str:
-    file_name = uploaded_file.name.lower()
-    file_data = uploaded_file.getvalue()
+def extract_text(uploaded_file) -> str:
+    name = uploaded_file.name.lower()
+    data = uploaded_file.getvalue()
 
-    if file_name.endswith((".txt", ".md")):
-        return file_data.decode("utf-8", errors="ignore")
+    if name.endswith((".txt", ".md")):
+        return data.decode("utf-8", errors="ignore")
 
-    if file_name.endswith(".pdf"):
+    if name.endswith(".pdf"):
         try:
             from pypdf import PdfReader
 
-            reader = PdfReader(io.BytesIO(file_data))
-            pages = []
-
-            for page in reader.pages:
-                pages.append(page.extract_text() or "")
-
-            return "\n".join(pages)
-
+            reader = PdfReader(io.BytesIO(data))
+            return "\n".join(
+                page.extract_text() or ""
+                for page in reader.pages
+            )
         except Exception as exc:
             raise ValueError(f"Unable to read the PDF file: {exc}")
 
-    if file_name.endswith(".docx"):
+    if name.endswith(".docx"):
         try:
             from docx import Document
 
-            document = Document(io.BytesIO(file_data))
+            document = Document(io.BytesIO(data))
             return "\n".join(
                 paragraph.text
                 for paragraph in document.paragraphs
             )
-
         except Exception as exc:
             raise ValueError(f"Unable to read the DOCX file: {exc}")
 
@@ -183,10 +351,6 @@ def extract_text_from_file(uploaded_file) -> str:
         "Unsupported file format. Please upload PDF, TXT, MD, or DOCX files."
     )
 
-
-# ============================================================
-# TEXT CLEANING AND CHUNKING
-# ============================================================
 
 def clean_text(text: str) -> str:
     text = text.replace("\x00", " ")
@@ -196,19 +360,17 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def split_into_chunks(
+def create_chunks(
     text: str,
-    chunk_size: int = 700,
-    overlap: int = 100,
+    chunk_size: int,
+    overlap: int,
 ) -> List[str]:
     text = clean_text(text)
 
     if not text:
         return []
 
-    if overlap >= chunk_size:
-        overlap = max(0, chunk_size // 5)
-
+    overlap = min(overlap, chunk_size - 1)
     chunks = []
     start = 0
 
@@ -231,22 +393,22 @@ def split_into_chunks(
 # RETRIEVER
 # ============================================================
 
-class TfidfRetriever:
+class Retriever:
     def __init__(self, chunks: List[str]):
         self.chunks = chunks
-        self.vectorizer = None
-        self.matrix = None
+        self.vectorizer = TfidfVectorizer(
+            lowercase=True,
+            stop_words="english",
+            ngram_range=(1, 2),
+            max_features=12000,
+        )
+        self.matrix = (
+            self.vectorizer.fit_transform(chunks)
+            if chunks
+            else None
+        )
 
-        if chunks:
-            self.vectorizer = TfidfVectorizer(
-                lowercase=True,
-                stop_words="english",
-                ngram_range=(1, 2),
-                max_features=10000,
-            )
-            self.matrix = self.vectorizer.fit_transform(chunks)
-
-    def search(self, query: str, top_k: int = 3) -> List[Dict]:
+    def search(self, query: str, top_k: int) -> List[Dict]:
         if not self.chunks or self.matrix is None:
             return []
 
@@ -256,7 +418,7 @@ class TfidfRetriever:
             self.matrix,
         ).flatten()
 
-        ranked_indices = np.argsort(scores)[::-1][:top_k]
+        indices = np.argsort(scores)[::-1][:top_k]
 
         return [
             {
@@ -265,7 +427,7 @@ class TfidfRetriever:
                 "score": float(scores[index]),
                 "text": self.chunks[index],
             }
-            for rank, index in enumerate(ranked_indices, start=1)
+            for rank, index in enumerate(indices, 1)
         ]
 
 
@@ -273,122 +435,90 @@ class TfidfRetriever:
 # ANSWER GENERATION
 # ============================================================
 
-def split_sentences(text: str) -> List[str]:
-    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+def tokens(text: str) -> set:
+    return set(re.findall(r"\b[a-zA-Z0-9]+\b", text.lower()))
+
+
+def sentences(text: str) -> List[str]:
     return [
-        sentence.strip()
-        for sentence in sentences
-        if sentence.strip()
+        item.strip()
+        for item in re.split(r"(?<=[.!?])\s+", text.strip())
+        if item.strip()
     ]
-
-
-def normalize_tokens(text: str) -> List[str]:
-    return re.findall(r"\b[a-zA-Z0-9]+\b", text.lower())
-
-
-def sentence_relevance(sentence: str, query: str) -> float:
-    sentence_tokens = set(normalize_tokens(sentence))
-    query_tokens = set(normalize_tokens(query))
-
-    if not sentence_tokens or not query_tokens:
-        return 0.0
-
-    overlap = len(sentence_tokens.intersection(query_tokens))
-
-    return overlap / math.sqrt(
-        len(sentence_tokens) * len(query_tokens)
-    )
 
 
 def generate_answer(
     query: str,
-    retrieved_chunks: List[Dict],
-    max_sentences: int = 3,
+    retrieved: List[Dict],
+    max_sentences: int,
 ) -> str:
-    if not retrieved_chunks:
-        return (
-            "I could not find relevant information in the uploaded documents."
-        )
+    if not retrieved:
+        return "No relevant information was found in the uploaded documents."
 
+    query_tokens = tokens(query)
     candidates = []
 
-    for chunk in retrieved_chunks:
-        for sentence in split_sentences(chunk["text"]):
-            candidates.append(
-                {
-                    "text": sentence,
-                    "score": sentence_relevance(sentence, query),
-                }
-            )
+    for item in retrieved:
+        for sentence in sentences(item["text"]):
+            sentence_tokens = tokens(sentence)
 
-    candidates.sort(
-        key=lambda item: item["score"],
-        reverse=True,
-    )
+            if not sentence_tokens:
+                continue
+
+            overlap = len(query_tokens & sentence_tokens)
+            score = overlap / math.sqrt(
+                len(query_tokens) * len(sentence_tokens)
+            ) if query_tokens else 0
+
+            candidates.append((score, sentence))
+
+    candidates.sort(reverse=True)
 
     selected = []
-    seen = set()
+    used = set()
 
-    for item in candidates:
-        sentence = item["text"].strip()
+    for _, sentence in candidates:
         key = sentence.lower()
 
-        if key in seen or len(sentence) < 20:
+        if key in used or len(sentence) < 20:
             continue
 
         selected.append(sentence)
-        seen.add(key)
+        used.add(key)
 
         if len(selected) >= max_sentences:
             break
 
-    if not selected:
-        return retrieved_chunks[0]["text"][:700]
-
-    return " ".join(selected)
+    return " ".join(selected) if selected else retrieved[0]["text"][:800]
 
 
 # ============================================================
-# EVALUATION FUNCTIONS
+# EVALUATION
 # ============================================================
 
-def lexical_tokens(text: str) -> set:
-    return set(normalize_tokens(text))
-
-
-def context_relevance(
-    query: str,
-    retrieved_chunks: List[Dict],
-) -> float:
-    if not retrieved_chunks:
+def relevance_score(query: str, retrieved: List[Dict]) -> float:
+    if not retrieved:
         return 0.0
 
-    query_tokens = lexical_tokens(query)
+    query_tokens = tokens(query)
 
     if not query_tokens:
         return 0.0
 
     scores = []
 
-    for chunk in retrieved_chunks:
-        chunk_tokens = lexical_tokens(chunk["text"])
+    for item in retrieved:
+        item_tokens = tokens(item["text"])
+        scores.append(
+            len(query_tokens & item_tokens) / len(query_tokens)
+        )
 
-        if not chunk_tokens:
-            scores.append(0.0)
-            continue
-
-        overlap = len(query_tokens.intersection(chunk_tokens))
-        scores.append(overlap / len(query_tokens))
-
-    return float(min(1.0, max(scores)))
+    return min(1.0, max(scores))
 
 
-def faithfulness_score(
-    answer: str,
-    context: str,
-) -> float:
-    answer_sentences = split_sentences(answer)
-    context_tokens = lexical_tokens(context)
+def faithfulness_score(answer: str, context: str) -> float:
+    answer_sentences = sentences(answer)
+    context_tokens = tokens(context)
 
     if not answer_sentences:
         return 0.0
@@ -396,131 +526,95 @@ def faithfulness_score(
     scores = []
 
     for sentence in answer_sentences:
-        sentence_tokens = lexical_tokens(sentence)
+        sentence_tokens = tokens(sentence)
 
-        if not sentence_tokens:
-            continue
+        if sentence_tokens:
+            scores.append(
+                len(sentence_tokens & context_tokens)
+                / len(sentence_tokens)
+            )
 
-        overlap = len(sentence_tokens.intersection(context_tokens))
-        scores.append(overlap / len(sentence_tokens))
-
-    if not scores:
-        return 0.0
-
-    return float(min(1.0, sum(scores) / len(scores)))
+    return min(1.0, sum(scores) / len(scores)) if scores else 0.0
 
 
-def answer_accuracy(
-    answer: str,
-    expected_answer: str,
-) -> float:
-    answer_tokens = lexical_tokens(answer)
-    expected_tokens = lexical_tokens(expected_answer)
+def accuracy_score(answer: str, expected: str) -> float:
+    answer_tokens = tokens(answer)
+    expected_tokens = tokens(expected)
 
     if not answer_tokens or not expected_tokens:
         return 0.0
 
-    common_tokens = answer_tokens.intersection(expected_tokens)
+    common = answer_tokens & expected_tokens
 
-    precision = len(common_tokens) / len(answer_tokens)
-    recall = len(common_tokens) / len(expected_tokens)
+    precision = len(common) / len(answer_tokens)
+    recall = len(common) / len(expected_tokens)
 
     if precision + recall == 0:
         return 0.0
 
-    return float(
-        2 * precision * recall / (precision + recall)
-    )
+    return 2 * precision * recall / (precision + recall)
 
 
-def get_root_cause(
-    retrieval_score: float,
+def diagnose(
+    retrieval: float,
     faithfulness: float,
     accuracy: float,
-    has_ground_truth: bool,
-    retrieval_threshold: float,
-    faithfulness_threshold: float,
-    accuracy_threshold: float,
-) -> Tuple[str, str]:
-    retrieval_failed = retrieval_score < retrieval_threshold
-    generation_failed = faithfulness < faithfulness_threshold
+    has_expected: bool,
+    retrieval_limit: float,
+    faithfulness_limit: float,
+    accuracy_limit: float,
+):
+    retrieval_failed = retrieval < retrieval_limit
+    faithfulness_failed = faithfulness < faithfulness_limit
+    accuracy_failed = has_expected and accuracy < accuracy_limit
 
-    if has_ground_truth:
-        generation_failed = (
-            generation_failed
-            or accuracy < accuracy_threshold
-        )
-
-    if retrieval_failed and generation_failed:
+    if retrieval_failed and (faithfulness_failed or accuracy_failed):
         return (
-            "Both Retrieval and Generation Issue",
-            "The retrieved context has weak query relevance and the generated answer is either unsupported or inaccurate.",
+            "Retrieval and Generation Issue",
+            "The retrieved context is weak and the generated answer is not sufficiently supported or accurate.",
         )
 
     if retrieval_failed:
         return (
-            "Retriever Failure",
-            "The retrieved chunks do not contain enough information related to the query.",
+            "Retriever Issue",
+            "The retrieved chunks have low relevance to the user query.",
         )
 
-    if faithfulness < faithfulness_threshold:
+    if faithfulness_failed:
         return (
-            "Generator Hallucination",
-            "The retrieved context is relevant, but the generated answer contains unsupported information.",
+            "Generation Faithfulness Issue",
+            "The answer contains information that is not sufficiently supported by the retrieved context.",
         )
 
-    if has_ground_truth and accuracy < accuracy_threshold:
+    if accuracy_failed:
         return (
-            "Generator Accuracy Failure",
-            "The retrieved context is relevant and supported, but the generated answer does not sufficiently match the expected answer.",
+            "Answer Accuracy Issue",
+            "The answer does not sufficiently match the expected answer.",
         )
 
     return (
         "Passed",
-        "The retriever and generator passed the configured evaluation thresholds.",
+        "The retrieval and answer generation pipeline passed the configured thresholds.",
     )
-
-
-# ============================================================
-# SYNTHETIC TEST GENERATION
-# ============================================================
-
-def generate_synthetic_tests(
-    chunks: List[str],
-    max_questions: int,
-) -> List[Dict]:
-    tests = []
-
-    for chunk_id, chunk in enumerate(chunks):
-        for sentence in split_sentences(chunk):
-            words = normalize_tokens(sentence)
-
-            if len(words) < 8:
-                continue
-
-            keywords = " ".join(words[:5])
-
-            tests.append(
-                {
-                    "question": (
-                        f"What information is mentioned about {keywords}?"
-                    ),
-                    "expected_answer": sentence,
-                    "source_chunk_id": chunk_id,
-                }
-            )
-
-            if len(tests) >= max_questions:
-                return tests
-
-    return tests
 
 
 # ============================================================
 # UI HELPERS
 # ============================================================
 
-def display_metric(label: str, value: float):
+def section(title: str, icon: str):
+    st.markdown(
+        f"""
+        <div class="section-heading">
+            <span class="section-icon">{icon}</span>
+            <span>{html.escape(title)}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def metric(label: str, value: float):
     st.markdown(
         f"""
         <div class="metric-card">
@@ -532,26 +626,18 @@ def display_metric(label: str, value: float):
     )
 
 
-def render_chunk(chunk: Dict, show_chunk_id: bool = True):
-    chunk_id_html = ""
-
-    if show_chunk_id:
-        chunk_id_html = (
-            f"<b>Chunk ID:</b> {chunk['chunk_id']}"
-            "&nbsp;&nbsp;|&nbsp;&nbsp;"
-        )
-
-    safe_text = html.escape(chunk["text"])
+def show_chunk(item: Dict):
+    safe_text = html.escape(item["text"])
 
     st.markdown(
         f"""
-        <div class="chunk-box">
-            <b>Rank:</b> {chunk['rank']}
-            &nbsp;&nbsp;|&nbsp;&nbsp;
-            {chunk_id_html}
-            <b>Similarity:</b> {chunk['score']:.3f}
-            <br><br>
-            {safe_text}
+        <div class="chunk-card">
+            <div class="chunk-meta">
+                Rank {item["rank"]} &nbsp;•&nbsp;
+                Chunk {item["chunk_id"]} &nbsp;•&nbsp;
+                Similarity {item["score"]:.3f}
+            </div>
+            <div>{safe_text}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -563,18 +649,26 @@ def render_chunk(chunk: Dict, show_chunk_id: bool = True):
 # ============================================================
 
 st.markdown(
-    '<div class="main-title">🧪 RAG Evaluation Pipeline</div>',
+    """
+    <div class="hero">
+        <div class="hero-title">🧪 RAG Evaluation Pipeline</div>
+        <div class="hero-subtitle">
+            Evaluate retrieval quality, answer faithfulness, and answer accuracy
+            in one place.
+        </div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
 st.markdown(
-    '<div class="sub-title">Retriever and Generator Tested Separately</div>',
+    """
+    <div class="info-card">
+        This application evaluates the retriever and answer generator separately
+        and identifies the probable root cause of each evaluation failure.
+    </div>
+    """,
     unsafe_allow_html=True,
-)
-
-st.info(
-    "This prototype evaluates the retriever and answer generator separately. "
-    "It also identifies the probable root cause of each evaluation failure."
 )
 
 
@@ -583,7 +677,7 @@ st.info(
 # ============================================================
 
 with st.sidebar:
-    st.header("⚙️ Pipeline Configuration")
+    st.markdown("## ⚙️ Pipeline Configuration")
 
     uploaded_files = st.file_uploader(
         "Upload Documents",
@@ -592,125 +686,125 @@ with st.sidebar:
         help="PDF, TXT, MD, and DOCX files are supported.",
     )
 
+    st.markdown("### Chunking Settings")
+
     chunk_size = st.slider(
         "Chunk Size",
-        min_value=300,
-        max_value=1500,
-        value=700,
-        step=50,
+        300,
+        1500,
+        700,
+        50,
     )
 
-    chunk_overlap = st.slider(
+    overlap = st.slider(
         "Chunk Overlap",
-        min_value=0,
-        max_value=300,
-        value=100,
-        step=25,
+        0,
+        300,
+        100,
+        25,
     )
 
     top_k = st.slider(
-        "Number of Retrieved Chunks",
-        min_value=1,
-        max_value=8,
-        value=3,
+        "Retrieved Chunks",
+        1,
+        8,
+        3,
     )
 
-    max_answer_sentences = st.slider(
+    max_sentences = st.slider(
         "Maximum Answer Sentences",
-        min_value=1,
-        max_value=6,
-        value=3,
+        1,
+        6,
+        3,
     )
 
     st.divider()
     st.markdown("### Evaluation Thresholds")
 
-    retrieval_threshold = st.slider(
+    retrieval_limit = st.slider(
         "Retrieval Threshold",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.35,
-        step=0.05,
+        0.0,
+        1.0,
+        0.35,
+        0.05,
     )
 
-    faithfulness_threshold = st.slider(
+    faithfulness_limit = st.slider(
         "Faithfulness Threshold",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.65,
-        step=0.05,
+        0.0,
+        1.0,
+        0.65,
+        0.05,
     )
 
-    accuracy_threshold = st.slider(
+    accuracy_limit = st.slider(
         "Accuracy Threshold",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.60,
-        step=0.05,
+        0.0,
+        1.0,
+        0.60,
+        0.05,
     )
 
 
 # ============================================================
-# DOCUMENT LOADING
+# EMPTY STATE
 # ============================================================
 
 if not uploaded_files:
-    st.markdown("## Getting Started")
-
-    st.write(
-        "Upload at least one document using the sidebar. "
-        "Then enter a query to evaluate retrieval and answer generation."
-    )
+    section("Getting Started", "🚀")
 
     st.markdown(
         """
-        ### Supported Features
-
-        - PDF, TXT, MD, and DOCX document ingestion
-        - TF-IDF-based retrieval
-        - Retrieved chunk similarity scores
-        - Extractive answer generation
-        - Context relevance scoring
-        - Faithfulness scoring
-        - Answer accuracy scoring
-        - Root-cause diagnosis
-        - Synthetic test-set evaluation
+        Upload at least one document from the sidebar to start evaluating
+        your RAG pipeline.
         """
     )
+
+    feature_col1, feature_col2, feature_col3 = st.columns(3)
+
+    with feature_col1:
+        st.info("📄 Upload PDF, TXT, MD, or DOCX files.")
+
+    with feature_col2:
+        st.info("🔍 Search and inspect relevant document chunks.")
+
+    with feature_col3:
+        st.info("📊 Evaluate retrieval and answer quality.")
 
     st.stop()
 
 
-all_text = []
-file_summary = []
+# ============================================================
+# LOAD DOCUMENTS
+# ============================================================
+
+documents = []
+file_status = []
 
 for uploaded_file in uploaded_files:
     try:
-        extracted_text = clean_text(
-            extract_text_from_file(uploaded_file)
-        )
+        text = clean_text(extract_text(uploaded_file))
 
-        if extracted_text:
-            all_text.append(extracted_text)
-
-            file_summary.append(
+        if text:
+            documents.append(text)
+            file_status.append(
                 {
                     "File": uploaded_file.name,
-                    "Characters": len(extracted_text),
+                    "Characters": len(text),
                     "Status": "Loaded",
                 }
             )
         else:
-            file_summary.append(
+            file_status.append(
                 {
                     "File": uploaded_file.name,
                     "Characters": 0,
-                    "Status": "Empty document",
+                    "Status": "No readable text",
                 }
             )
 
     except Exception as exc:
-        file_summary.append(
+        file_status.append(
             {
                 "File": uploaded_file.name,
                 "Characters": 0,
@@ -718,238 +812,203 @@ for uploaded_file in uploaded_files:
             }
         )
 
+combined_text = "\n\n".join(documents)
 
-combined_text = "\n\n".join(all_text)
-
-chunks = split_into_chunks(
+chunks = create_chunks(
     combined_text,
-    chunk_size=chunk_size,
-    overlap=chunk_overlap,
+    chunk_size,
+    overlap,
 )
 
 if not chunks:
     st.error("No readable text was found in the uploaded documents.")
     st.stop()
 
-retriever = TfidfRetriever(chunks)
+retriever = Retriever(chunks)
 
 
 # ============================================================
 # DOCUMENT OVERVIEW
 # ============================================================
 
-st.markdown("## 📄 Document Overview")
+section("Document Overview", "📄")
 
-col1, col2, col3, col4 = st.columns(4)
+overview1, overview2, overview3, overview4 = st.columns(4)
 
-with col1:
-    display_metric("Documents", 1.0)
+with overview1:
+    metric("Documents", 1.0)
 
-with col2:
-    display_metric("Chunks", 1.0 if chunks else 0.0)
+with overview2:
+    metric("Chunks Available", 1.0 if chunks else 0.0)
 
-with col3:
-    display_metric("Text Available", 1.0 if combined_text else 0.0)
+with overview3:
+    metric("Text Available", 1.0 if combined_text else 0.0)
 
-with col4:
-    display_metric(
-        "Retriever Ready",
-        1.0 if retriever.matrix is not None else 0.0,
-    )
+with overview4:
+    metric("Retriever Ready", 1.0 if retriever.matrix is not None else 0.0)
 
 with st.expander("View Uploaded File Status"):
     st.dataframe(
-        pd.DataFrame(file_summary),
+        pd.DataFrame(file_status),
         use_container_width=True,
         hide_index=True,
     )
 
 
 # ============================================================
-# MANUAL QUERY EVALUATION
+# QUERY EVALUATION
 # ============================================================
 
-st.markdown("## 🔍 Query Evaluation")
+section("Query Evaluation", "🔍")
 
 query = st.text_input(
     "Enter Your Question",
-    value="What is the main information contained in the uploaded documents?",
+    placeholder="Example: What is the main topic of these documents?",
 )
 
 expected_answer = st.text_area(
     "Expected Answer / Ground Truth",
     placeholder=(
-        "Optional: enter the expected answer. "
-        "This will be used to calculate answer accuracy."
+        "Optional: enter the expected answer to calculate answer accuracy."
     ),
-    height=100,
+    height=110,
 )
 
-run_query = st.button(
+run_evaluation = st.button(
     "Run RAG Evaluation",
     type="primary",
     use_container_width=True,
 )
 
-if run_query:
+if run_evaluation:
     if not query.strip():
-        st.warning("Please enter a query.")
+        st.warning("Please enter a question first.")
         st.stop()
 
-    retrieved_chunks = retriever.search(
-        query=query,
-        top_k=top_k,
+    retrieved = retriever.search(query, top_k)
+    context = "\n\n".join(item["text"] for item in retrieved)
+
+    answer = generate_answer(
+        query,
+        retrieved,
+        max_sentences,
     )
 
-    context = "\n\n".join(
-        item["text"]
-        for item in retrieved_chunks
-    )
+    retrieval = relevance_score(query, retrieved)
+    faithfulness = faithfulness_score(answer, context)
 
-    generated_answer = generate_answer(
-        query=query,
-        retrieved_chunks=retrieved_chunks,
-        max_sentences=max_answer_sentences,
-    )
-
-    retrieval_score = context_relevance(
-        query=query,
-        retrieved_chunks=retrieved_chunks,
-    )
-
-    faithfulness = faithfulness_score(
-        answer=generated_answer,
-        context=context,
-    )
-
-    has_ground_truth = bool(expected_answer.strip())
+    has_expected = bool(expected_answer.strip())
 
     accuracy = (
-        answer_accuracy(
-            answer=generated_answer,
-            expected_answer=expected_answer,
-        )
-        if has_ground_truth
+        accuracy_score(answer, expected_answer)
+        if has_expected
         else 0.0
     )
 
-    root_cause, diagnosis = get_root_cause(
-        retrieval_score=retrieval_score,
-        faithfulness=faithfulness,
-        accuracy=accuracy,
-        has_ground_truth=has_ground_truth,
-        retrieval_threshold=retrieval_threshold,
-        faithfulness_threshold=faithfulness_threshold,
-        accuracy_threshold=accuracy_threshold,
+    root_cause, explanation = diagnose(
+        retrieval,
+        faithfulness,
+        accuracy,
+        has_expected,
+        retrieval_limit,
+        faithfulness_limit,
+        accuracy_limit,
     )
 
-    st.session_state["last_result"] = {
+    st.session_state["evaluation"] = {
         "query": query,
-        "expected_answer": expected_answer,
-        "retrieved_chunks": retrieved_chunks,
-        "generated_answer": generated_answer,
-        "retrieval_score": retrieval_score,
+        "answer": answer,
+        "retrieved": retrieved,
+        "retrieval": retrieval,
         "faithfulness": faithfulness,
         "accuracy": accuracy,
         "root_cause": root_cause,
-        "diagnosis": diagnosis,
+        "explanation": explanation,
+        "expected": expected_answer,
     }
 
 
 # ============================================================
-# DISPLAY RESULT
+# EVALUATION RESULT
 # ============================================================
 
-if "last_result" in st.session_state:
-    result = st.session_state["last_result"]
+if "evaluation" in st.session_state:
+    result = st.session_state["evaluation"]
 
-    st.markdown("### Evaluation Scores")
+    section("Evaluation Results", "📊")
 
-    score1, score2, score3, score4 = st.columns(4)
+    result1, result2, result3, result4 = st.columns(4)
 
-    overall_passed = (
-        result["retrieval_score"] >= retrieval_threshold
-        and result["faithfulness"] >= faithfulness_threshold
+    passed = (
+        result["retrieval"] >= retrieval_limit
+        and result["faithfulness"] >= faithfulness_limit
         and (
-            not result["expected_answer"].strip()
-            or result["accuracy"] >= accuracy_threshold
+            not result["expected"].strip()
+            or result["accuracy"] >= accuracy_limit
         )
     )
 
-    with score1:
-        display_metric(
-            "Context Relevance",
-            result["retrieval_score"],
-        )
+    with result1:
+        metric("Context Relevance", result["retrieval"])
 
-    with score2:
-        display_metric(
-            "Faithfulness",
-            result["faithfulness"],
-        )
+    with result2:
+        metric("Faithfulness", result["faithfulness"])
 
-    with score3:
-        display_metric(
-            "Answer Accuracy",
-            result["accuracy"],
-        )
+    with result3:
+        metric("Answer Accuracy", result["accuracy"])
 
-    with score4:
-        display_metric(
-            "Overall Result",
-            1.0 if overall_passed else 0.0,
-        )
+    with result4:
+        metric("Overall Result", 1.0 if passed else 0.0)
 
     st.markdown("### 🤖 Generated Answer")
-    st.success(result["generated_answer"])
+
+    st.markdown(
+        f"""
+        <div class="answer-card">
+            {html.escape(result["answer"])}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### 🧠 Root-Cause Diagnosis")
 
     if result["root_cause"] == "Passed":
         st.success(f"✅ {result['root_cause']}")
-    elif "Both" in result["root_cause"]:
-        st.error(f"❌ {result['root_cause']}")
-    else:
+    elif "Retrieval" in result["root_cause"]:
         st.warning(f"⚠️ {result['root_cause']}")
+    else:
+        st.error(f"❌ {result['root_cause']}")
 
-    st.write(result["diagnosis"])
+    st.write(result["explanation"])
 
     st.markdown("### 📚 Retrieved Context")
 
-    if not result["retrieved_chunks"]:
-        st.error("No relevant chunks were retrieved.")
+    if result["retrieved"]:
+        for item in result["retrieved"]:
+            show_chunk(item)
     else:
-        for item in result["retrieved_chunks"]:
-            render_chunk(item, show_chunk_id=True)
+        st.warning("No relevant context was retrieved.")
 
     report = pd.DataFrame(
         [
             {
-                "query": result["query"],
-                "generated_answer": result["generated_answer"],
-                "context_relevance": round(
-                    result["retrieval_score"],
-                    4,
-                ),
-                "faithfulness": round(
-                    result["faithfulness"],
-                    4,
-                ),
-                "answer_accuracy": round(
-                    result["accuracy"],
-                    4,
-                ),
-                "root_cause": result["root_cause"],
-                "diagnosis": result["diagnosis"],
+                "Query": result["query"],
+                "Generated Answer": result["answer"],
+                "Context Relevance": round(result["retrieval"], 4),
+                "Faithfulness": round(result["faithfulness"], 4),
+                "Answer Accuracy": round(result["accuracy"], 4),
+                "Root Cause": result["root_cause"],
+                "Explanation": result["explanation"],
             }
         ]
     )
 
     st.download_button(
-        "⬇️ Download Current Evaluation CSV",
-        data=report.to_csv(index=False).encode("utf-8"),
-        file_name="rag_evaluation_report.csv",
-        mime="text/csv",
+        "Download Evaluation Report",
+        report.to_csv(index=False).encode("utf-8"),
+        "rag_evaluation_report.csv",
+        "text/csv",
         use_container_width=True,
     )
 
@@ -958,213 +1017,67 @@ if "last_result" in st.session_state:
 # RETRIEVER INSPECTION
 # ============================================================
 
-st.markdown("## 🧩 Retriever Inspection")
+section("Retriever Inspection", "🧩")
 
 inspection_query = st.text_input(
-    "Inspect Retrieved Chunks for Another Query",
-    value="",
+    "Inspect Retrieved Chunks",
+    placeholder="Enter another question to inspect retrieval...",
 )
 
 if inspection_query.strip():
     inspection_results = retriever.search(
-        query=inspection_query,
-        top_k=top_k,
+        inspection_query,
+        top_k,
     )
 
-    if not inspection_results:
-        st.warning("No chunks were retrieved.")
-    else:
+    if inspection_results:
         for item in inspection_results:
-            render_chunk(item, show_chunk_id=False)
-
-
-# ============================================================
-# SYNTHETIC TEST EVALUATION
-# ============================================================
-
-st.markdown("## 🧪 Automated Synthetic Test Evaluation")
-
-st.write(
-    "This section creates deterministic synthetic questions from document "
-    "sentences and evaluates the complete pipeline in batch mode."
-)
-
-synthetic_count = st.slider(
-    "Number of Synthetic Test Cases",
-    min_value=3,
-    max_value=30,
-    value=10,
-)
-
-run_batch = st.button(
-    "Generate and Run Synthetic Tests",
-    use_container_width=True,
-)
-
-if run_batch:
-    synthetic_tests = generate_synthetic_tests(
-        chunks=chunks,
-        max_questions=synthetic_count,
-    )
-
-    if not synthetic_tests:
-        st.warning("Synthetic test cases could not be generated.")
+            show_chunk(item)
     else:
-        rows = []
-        progress_bar = st.progress(0.0)
-
-        for index, test_case in enumerate(synthetic_tests):
-            test_query = test_case["question"]
-            expected = test_case["expected_answer"]
-
-            retrieved_chunks = retriever.search(
-                query=test_query,
-                top_k=top_k,
-            )
-
-            context = "\n\n".join(
-                item["text"]
-                for item in retrieved_chunks
-            )
-
-            generated_answer = generate_answer(
-                query=test_query,
-                retrieved_chunks=retrieved_chunks,
-                max_sentences=max_answer_sentences,
-            )
-
-            retrieval_score = context_relevance(
-                query=test_query,
-                retrieved_chunks=retrieved_chunks,
-            )
-
-            faithfulness = faithfulness_score(
-                answer=generated_answer,
-                context=context,
-            )
-
-            accuracy = answer_accuracy(
-                answer=generated_answer,
-                expected_answer=expected,
-            )
-
-            root_cause, diagnosis = get_root_cause(
-                retrieval_score=retrieval_score,
-                faithfulness=faithfulness,
-                accuracy=accuracy,
-                has_ground_truth=True,
-                retrieval_threshold=retrieval_threshold,
-                faithfulness_threshold=faithfulness_threshold,
-                accuracy_threshold=accuracy_threshold,
-            )
-
-            rows.append(
-                {
-                    "test_id": index + 1,
-                    "question": test_query,
-                    "expected_answer": expected,
-                    "generated_answer": generated_answer,
-                    "retrieval_score": round(
-                        retrieval_score,
-                        4,
-                    ),
-                    "faithfulness": round(
-                        faithfulness,
-                        4,
-                    ),
-                    "accuracy": round(
-                        accuracy,
-                        4,
-                    ),
-                    "root_cause": root_cause,
-                    "diagnosis": diagnosis,
-                }
-            )
-
-            progress_bar.progress(
-                (index + 1) / len(synthetic_tests)
-            )
-
-        st.session_state["batch_df"] = pd.DataFrame(rows)
+        st.info("No chunks were retrieved for this query.")
 
 
 # ============================================================
-# BATCH RESULT
+# ALL CHUNKS
 # ============================================================
 
-if "batch_df" in st.session_state:
-    batch_df = st.session_state["batch_df"]
-
-    average_retrieval = batch_df["retrieval_score"].mean()
-    average_faithfulness = batch_df["faithfulness"].mean()
-    average_accuracy = batch_df["accuracy"].mean()
-
-    batch1, batch2, batch3 = st.columns(3)
-
-    with batch1:
-        display_metric(
-            "Average Retrieval",
-            average_retrieval,
-        )
-
-    with batch2:
-        display_metric(
-            "Average Faithfulness",
-            average_faithfulness,
-        )
-
-    with batch3:
-        display_metric(
-            "Average Accuracy",
-            average_accuracy,
-        )
-
-    st.dataframe(
-        batch_df,
-        use_container_width=True,
-        hide_index=True,
-    )
-
-    st.download_button(
-        "⬇️ Download Synthetic Evaluation CSV",
-        data=batch_df.to_csv(index=False).encode("utf-8"),
-        file_name="synthetic_rag_evaluation_report.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
-
-    st.markdown("### Root-Cause Distribution")
-
-    root_cause_counts = (
-        batch_df["root_cause"]
-        .value_counts()
-        .rename_axis("root_cause")
-        .reset_index(name="count")
-    )
-
-    st.bar_chart(
-        root_cause_counts.set_index("root_cause")
-    )
-
-
-# ============================================================
-# CHUNK VIEWER
-# ============================================================
+section("Document Chunks", "🗂️")
 
 with st.expander("View All Document Chunks"):
-    chunk_df = pd.DataFrame(
+    all_chunks = pd.DataFrame(
         [
             {
-                "chunk_id": index,
-                "characters": len(chunk),
-                "text": chunk,
+                "Chunk ID": index,
+                "Characters": len(chunk),
+                "Text": chunk,
             }
             for index, chunk in enumerate(chunks)
         ]
     )
 
     st.dataframe(
-        chunk_df,
+        all_chunks,
         use_container_width=True,
         hide_index=True,
     )
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+st.markdown("---")
+
+st.markdown(
+    """
+    <div style="
+        text-align:center;
+        color:#667085 !important;
+        font-size:13px;
+        padding:12px;
+    ">
+        RAG Evaluation Pipeline • Retrieval and Generation Analysis
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
